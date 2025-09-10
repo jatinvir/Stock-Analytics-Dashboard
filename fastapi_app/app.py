@@ -1,12 +1,9 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
 import psycopg
 import os
 
 app = FastAPI()
-load_dotenv()
-
 
 @app.get("/healthz")
 def healthz():
