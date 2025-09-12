@@ -5,16 +5,18 @@ import os
 
 app = FastAPI()
 
+def _db_connect():
+    dbname = os.getenv("DB_NAME")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    host = os.getenv("DB_HOST")
+    port = os.getenv("DB_PORT")
+    return psycopg.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+
 @app.get("/healthz")
 def healthz():
     try:
-        dbname = os.getenv("DB_NAME")
-        user = os.getenv("DB_USER")
-        password = os.getenv("DB_PASSWORD")
-        host = os.getenv("DB_HOST")
-        port = os.getenv("DB_PORT")
-
-        with psycopg.connect(dbname=dbname, user=user, password=password, host=host, port=port) as conn:
+        with _db_connect() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1;")
                 cur.fetchone()
@@ -26,14 +28,7 @@ def healthz():
 @app.get("/symbols")
 def symbols():
     try:
-        # connect to pg inside docker
-        dbname = os.getenv("DB_NAME")
-        user = os.getenv("DB_USER")
-        password = os.getenv("DB_PASSWORD")
-        host = os.getenv("DB_HOST")
-        port = os.getenv("DB_PORT")
-
-        with psycopg.connect(dbname=dbname, user=user, password=password, host=host, port=port) as conn:
+        with _db_connect() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT * FROM symbols;")
                 rows = cur.fetchall()
