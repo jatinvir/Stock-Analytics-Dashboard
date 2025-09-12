@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: ./fastapi_app
+      dockerfile: Dockerfile
+    container_name: stock-api-dev
+    env_file:
+      - ./fastapi_app/.env.dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    container_name: stock-db
+    environment:
+      POSTGRES_DB: stocks
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./fastapi_app/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d stocks" ]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: stock-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  pg_data:
+
+
