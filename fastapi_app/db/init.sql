@@ -4,6 +4,6 @@ CREATE TABLE IF NOT EXISTS symbols (
 );
 
 INSERT INTO symbols(symbol, name) VALUES
-  ('AAPL','Apple Inc.'),
+  ('APPL','Apple Inc.'),
   ('MSFT','Microsoft Corporation')
 ON CONFLICT (symbol) DO NOTHING;
