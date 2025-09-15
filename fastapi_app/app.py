@@ -34,11 +34,11 @@ def healthz():
 
 
 @app.get("/symbols")
-def symbols(q: str = Query(None, min_length=1), limit: int = Query(0, ge=0), offset: int = Query(0, ge=0)):
+def symbols(q: str = Query(None, min_length=1), limit: int = Query(50, ge=0), offset: int = Query(0, ge=0)):
     try:
         with _db_connect() as conn:
             with conn.cursor() as cur:
-                if q is None or limit is None or offset is None:
+                if q is None:
                     cur.execute("""
                         SELECT symbol, name 
                         FROM symbols 
@@ -72,6 +72,7 @@ def get_symbol(symbol: str):
                 if row is None:
                     raise HTTPException(status_code=404, detail="Symbol not found")
                 result = {"symbol": row[0], "name": row[1]}
+                return JSONResponse({"status": "ok", "data": result})
     except HTTPException:
         raise
     except Exception as e:
@@ -140,3 +141,23 @@ def update_symbol(symbol: str, payload: SymbolUpdate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+## prices
+@app.get("/prices/")
+def get_prices(q: str = Query(None, min_length=1), limit: int = Query(50, ge=0), offset: int = Query(0, ge=0), ):
+    try:
+        with _db_connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT p.symbol, p.date, p.open, p.high, p.low, p.close, p.volume
+                    FROM prices p
+                    """
+                )
+                rows = cur.fetchall()
+            results = [{"symbol": r[0], "date": r[1], "open": r[2], "high": r[3], "low": r[4], "close": r[5], "volume": r[6]} for r in rows]
+        return ({"status": "ok", "data": results})
+    except Exception as e:
+        return JSONResponse({"status": "error", "details": str(e)}, status_code=500)
+
+            
