@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from datetime import date
+from typing import Optional
 import psycopg
 import os
 
@@ -144,20 +146,66 @@ def update_symbol(symbol: str, payload: SymbolUpdate):
 
 ## prices
 @app.get("/prices/")
-def get_prices(q: str = Query(None, min_length=1), limit: int = Query(50, ge=0), offset: int = Query(0, ge=0), ):
+def get_prices(limit: int = Query(30, ge=1, le=200), offset: int = Query(0, ge=0), symbol: str = Query(..., min_length=1), date_from: Optional[date] = Query(None), date_to: Optional[date] = Query(None)):
     try:
         with _db_connect() as conn:
             with conn.cursor() as cur:
+                sym = symbol.strip().upper()
+                if date_from and date_to and date_from > date_to:
+                    raise HTTPException(status_code=400, detail="date_from cannot be greater than date_to")
+                where = ["p.symbol = %s"]
+                params = [sym]
+                if date_from:
+                    where.append("p.date >= %s")
+                    params.append(date_from)
+                if date_to:
+                    where.append("p.date <= %s")
+                    params.append(date_to)
+                where_clause = " AND ".join(where)
+                lim_plus_one = limit + 1
                 cur.execute(
-                    """
-                    SELECT p.symbol, p.date, p.open, p.high, p.low, p.close, p.volume
+                    f"""
+                    SELECT p.date, p.open, p.high, p.low, p.close, p.volume
                     FROM prices p
+                    WHERE {where_clause}
+                    ORDER BY p.date DESC
+                    LIMIT %s OFFSET %s;
                     """
+                    , (*params, lim_plus_one, offset )
                 )
                 rows = cur.fetchall()
-            results = [{"symbol": r[0], "date": r[1], "open": r[2], "high": r[3], "low": r[4], "close": r[5], "volume": r[6]} for r in rows]
+            has_more = len(rows) > limit
+            if has_more:
+                rows = rows[:limit]
+            results = [{"date": r[0], "open": r[1], "high": r[2], "low": r[3], "close": r[4], "volume": r[5], "has_more": has_more} for r in rows]
         return ({"status": "ok", "data": results})
     except Exception as e:
         return JSONResponse({"status": "error", "details": str(e)}, status_code=500)
 
             
+@app.get("/prices/{symbol}/latest")
+def get_latest_price(symbol: str):
+    symbol = symbol.strip().upper()
+    try:
+        with _db_connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT date, open, high, low, close, volume
+                    FROM public.prices
+                    WHERE symbol = %s
+                    ORDER BY date DESC
+                    LIMIT 1;
+                    """,
+                    (symbol,)
+                )
+                row = cur.fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="No price data found for the symbol")
+            result = {"date": row[0], "open": row[1], "high": row[2], "low": row[3], "close": row[4], "volume": row[5]}
+        return ({"status": "ok", "data": result})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+                          
