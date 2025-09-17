@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Stock Prices API Test</h2>
+
+<label for="symbol">Symbol:
+    <input type="text" id="symbol" value="AAPL">
+</label>
+<label for="date_from">From:
+    <input type="date" id="date_from" value="2025-08-01">
+</label>
+<label for="date_to">To:
+    <input type="date" id="date_to" value="2025-09-30">
+</label>
+<label for="limit">Limit:
+    <input type="number" id="limit" value="30" min="1" max="200">
+</label>
+<button onclick="loadPrices()">Load Prices</button>
+<button onclick="latestPrice()">Latest Price</button>
+
+<div>
+    <canvas id="priceChart" width="800" height="400" style="border:1px solid #000000;">
+
+    </canvas>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+
+    let chart;
+
+    async function loadPrices() {
+        const symbol = document.getElementById('symbol').value.trim().toUpperCase();
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        let limit = parseInt(document.getElementById('limit').value, 10);
+        if (isNaN(limit)) limit = 30;
+        limit = Math.max(1, Math.min(200, limit));
+        if (!symbol) {
+            alert("Symbol is required");
+            return;
+        }
+        const params = new URLSearchParams({
+            symbol: symbol,
+            limit: limit.toString()
+        });
+        if (dateFrom) params.append("date_from", dateFrom);
+        if (dateTo) params.append("date_to", dateTo);
+        let url = `http://localhost:8000/prices/?${params.toString()}`;
+
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+
+            if (json.status !== "ok") return;
+
+            const items = [...json.data].reverse();
+            const labels = items.map(i => i.date);
+            const prices = items.map(i => Number(i.close));
+
+            drawLine(labels, prices, `Close Prices for ${symbol}`);
+
+        } catch (e) {
+            console.error('Error:', e);
+        }
+
+        
+    }
+
+    function drawLine(labels, values, label) {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        if (chart) {
+            chart.destroy();
+        }
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: values,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Price'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        enabled: true
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                }
+
+            }
+        });
+    }
+    function latestPrice() {
+        const symbol = document.getElementById('symbol').value.trim().toUpperCase();
+        if (!symbol) {
+            alert("Symbol is required");
+            return;
+        }
+        let url = `http://localhost:8000/prices/?symbol=${symbol}&limit=1`;
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data.status === "ok" && data.data.length > 0) {
+                    const price = data.data[0];
+                    alert(`Latest price for ${symbol} on ${price.date} is ${price.close}`);
+                } else {
+                    alert(`No data found for ${symbol}`);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+
+    }
+</script>
+
+
+</body>
+</html>

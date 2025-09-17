@@ -3,10 +3,18 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import date
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 import psycopg
 import os
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 def _db_connect():
     dbname = os.getenv("DB_NAME")
