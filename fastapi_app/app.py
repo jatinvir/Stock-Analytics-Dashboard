@@ -185,8 +185,8 @@ def get_prices(limit: int = Query(30, ge=1, le=200), offset: int = Query(0, ge=0
             has_more = len(rows) > limit
             if has_more:
                 rows = rows[:limit]
-            results = [{"date": r[0], "open": r[1], "high": r[2], "low": r[3], "close": r[4], "volume": r[5], "has_more": has_more} for r in rows]
-        return ({"status": "ok", "data": results})
+            results = [{"date": r[0], "open": r[1], "high": r[2], "low": r[3], "close": r[4], "volume": r[5]} for r in rows]
+        return ({"status": "ok", "data": results, "has_more": has_more})
     except Exception as e:
         return JSONResponse({"status": "error", "details": str(e)}, status_code=500)
 
