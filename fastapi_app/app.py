@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import psycopg
 import os
 
+from ingest import ingest_one_symbol, ingest_all_symbols
+
 app = FastAPI()
 
 app.add_middleware(
@@ -216,4 +218,14 @@ def get_latest_price(symbol: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+# Ingestion endpoints
+@app.post("/ingest_one/{symbol}")
+def api_ingest_one(symbol: str):
+    return ingest_one_symbol(symbol)
+
+@app.post("/ingest_all/")
+def api_ingest_all():
+    return ingest_all_symbols()
                           
