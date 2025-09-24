@@ -8,6 +8,7 @@ import psycopg
 import os
 
 from ingest import ingest_one_symbol, ingest_all_symbols
+from analytics import calculate_moving_average
 
 app = FastAPI()
 
@@ -229,3 +230,8 @@ def api_ingest_one(symbol: str):
 def api_ingest_all():
     return ingest_all_symbols()
                           
+
+# analytics endpoints
+@app.get("/analytics/{symbol}/moving_average")
+def api_calculate_moving_average(symbol: str, window: int = Query(5, ge=1, le=30), date_from: Optional[date] = Query(None), date_to: Optional[date] = Query(None)):
+    return calculate_moving_average(symbol, window, date_from, date_to)
