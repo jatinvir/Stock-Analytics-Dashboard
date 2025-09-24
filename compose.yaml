@@ -33,9 +33,8 @@ services:
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: stock-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+    env_file:
+      - ./fastapi_app/.env.dev
     ports:
       - "5050:80"
     depends_on:
