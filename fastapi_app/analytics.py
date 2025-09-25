@@ -49,8 +49,9 @@ def calculate_moving_average(symbol: str, window: int, date_from: Optional[date]
         
         df_avg = DataFrame(date_prices_data, columns=["date", "close"])
 
-        df_avg["MA"] = df_avg["close"].rolling(window=window).mean()
+        df_avg["MA"] = df_avg["close"].rolling(window= window, min_periods=window).mean()
+        df_avg = df_avg.dropna(subset=["MA"])
 
-        return {"status": "ok", "rows": df_avg.to_dict(orient="records")}
+        return {"status": "ok", "symbol": symbol, "window": window, "date_from": date_from, "date_to": date_to, "rows": df_avg.to_dict(orient="records")}
 
 
