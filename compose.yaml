@@ -15,10 +15,8 @@ services:
   postgres:
     image: postgres:16
     container_name: stock-db
-    environment:
-      POSTGRES_DB: stocks
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+    env_file:
+      - ./fastapi_app/.env.dev
     ports:
       - "5432:5432"
     volumes:
@@ -40,6 +38,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./fastapi_app/.env.dev
+    depends_on:
+      - postgres
 volumes:
   pg_data:
 
